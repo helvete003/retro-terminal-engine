@@ -19,12 +19,12 @@ class RetroEngine {
         this.ctx = this.canvas.getContext("2d");
         this.renderElements = [];
         this._scrollRAF = null;
-        this._resize();
+        this._resizeTimer = null;
         this._applyScroll();
 
         window.addEventListener("resize", () => {
-            this._resize();
             this._setupMargins();
+            this._resize();
             this.render();
         });
 
@@ -35,6 +35,15 @@ class RetroEngine {
                 this._scrollRAF = null;
             });
         }, { passive: true });
+
+        this._bodyObserver = new ResizeObserver(() => {
+            if (this._resizeTimer) clearTimeout(this._resizeTimer);
+            this._resizeTimer = setTimeout(() => {
+                this._resize();
+                this.render();
+            }, 100);
+        });
+        this._bodyObserver.observe(document.body);
     }
 
     _resize() {
@@ -181,7 +190,10 @@ document.fonts.ready.then(() => {
     const engine = new RetroEngine("retro-engine");
     if (engine.init("retro-render")) {
         engine._setupMargins();
-        engine.render();
-        engine.startLoop();
+        requestAnimationFrame(() => {
+            engine._resize();
+            engine.render();
+            engine.startLoop();
+        });
     }
 });
