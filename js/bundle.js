@@ -20,7 +20,7 @@ class RetroEngine {
         this.renderElements = [];
         this._scrollRAF = null;
         this._resizeTimer = null;
-        this._applyScroll();
+        this._mode = "full";
 
         window.addEventListener("resize", () => {
             this._setupMargins();
@@ -29,11 +29,19 @@ class RetroEngine {
         });
 
         window.addEventListener("scroll", () => {
-            if (this._scrollRAF) return;
-            this._scrollRAF = requestAnimationFrame(() => {
-                this._applyScroll();
-                this._scrollRAF = null;
-            });
+            if (this._mode === "full") {
+                if (this._scrollRAF) return;
+                this._scrollRAF = requestAnimationFrame(() => {
+                    this._applyScroll();
+                    this._scrollRAF = null;
+                });
+            } else {
+                if (this._scrollRAF) return;
+                this._scrollRAF = requestAnimationFrame(() => {
+                    this.render();
+                    this._scrollRAF = null;
+                });
+            }
         }, { passive: true });
 
         this._bodyObserver = new ResizeObserver(() => {
@@ -49,11 +57,26 @@ class RetroEngine {
     _resize() {
         const dpr = window.devicePixelRatio || 1;
         const vw = window.innerWidth;
+        const vh = window.innerHeight;
         const dh = document.documentElement.scrollHeight;
+        const maxPx = 4096;
 
-        this.canvas.width = vw * dpr;
-        this.canvas.height = dh * dpr;
-        this.canvas.style.height = dh + "px";
+        const fullW = vw * dpr;
+        const fullH = dh * dpr;
+
+        if (fullW <= maxPx && fullH <= maxPx) {
+            this._mode = "full";
+            this.canvas.width = fullW;
+            this.canvas.height = fullH;
+            this.canvas.style.height = dh + "px";
+            this.canvas.style.transform = "";
+        } else {
+            this._mode = "viewport";
+            this.canvas.width = vw * dpr;
+            this.canvas.height = vh * dpr;
+            this.canvas.style.height = vh + "px";
+            this.canvas.style.transform = "";
+        }
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
@@ -124,47 +147,80 @@ class RetroEngine {
         const scrollY = window.scrollY || 0;
         const scrollX = window.scrollX || 0;
 
-        const top = rect.top + scrollY;
-        const left = rect.left + scrollX;
-        const bottom = rect.bottom + scrollY;
-        const right = rect.right + scrollX;
+        if (this._mode === "full") {
+            const top = rect.top + scrollY;
+            const left = rect.left + scrollX;
+            const bottom = rect.bottom + scrollY;
+            const right = rect.right + scrollX;
 
-        const pt = el._rtPaddingTop || 0;
-        const pb = el._rtPaddingBottom || 0;
-        const pl = el._rtPaddingLeft || 0;
-        const pr = el._rtPaddingRight || 0;
+            const pt = el._rtPaddingTop || 0;
+            const pl = el._rtPaddingLeft || 0;
+            const pr = el._rtPaddingRight || 0;
 
-        const topEdge = top + pt;
-        const bottomEdge = bottom;
-        const leftEdge = left + pl;
-        const rightEdge = right - pr;
+            const topEdge = top + pt;
+            const bottomEdge = bottom;
+            const leftEdge = left + pl;
+            const rightEdge = right - pr;
 
-        const hCount = Math.max(1, Math.floor((rightEdge - leftEdge) / this._hW));
-        const hStr = style.h.repeat(hCount);
+            const hCount = Math.max(1, Math.floor((rightEdge - leftEdge) / this._hW));
+            const hStr = style.h.repeat(hCount);
 
-        this.ctx.fillText(hStr, leftEdge, topEdge);
-        this.ctx.fillText(hStr, leftEdge, bottomEdge);
+            this.ctx.fillText(hStr, leftEdge, topEdge);
+            this.ctx.fillText(hStr, leftEdge, bottomEdge);
 
-        const vSpace = bottomEdge - topEdge - (2 * this._vTotalH);
-        const vCount = Math.max(1, Math.round(vSpace / this._vTotalH));
-        const vSpacing = vCount > 1 ? vSpace / (vCount - 1) : 0;
+            const vSpace = bottomEdge - topEdge - (2 * this._vTotalH);
+            const vCount = Math.max(1, Math.round(vSpace / this._vTotalH));
+            const vSpacing = vCount > 1 ? vSpace / (vCount - 1) : 0;
 
-        for (let i = 0; i < vCount; i++) {
-            const y = topEdge + this._vTotalH + i * vSpacing;
-            this.ctx.fillText(style.v, leftEdge - this._hW, y);
-            this.ctx.fillText(style.v, rightEdge, y);
+            for (let i = 0; i < vCount; i++) {
+                const y = topEdge + this._vTotalH + i * vSpacing;
+                this.ctx.fillText(style.v, leftEdge - this._hW, y);
+                this.ctx.fillText(style.v, rightEdge, y);
+            }
+
+            this.ctx.fillText(style.tl, leftEdge - this._hW, topEdge);
+            this.ctx.fillText(style.tr, rightEdge, topEdge);
+            this.ctx.fillText(style.bl, leftEdge - this._hW, bottomEdge);
+            this.ctx.fillText(style.br, rightEdge, bottomEdge);
+        } else {
+            const topEdge = rect.top + (el._rtPaddingTop || 0);
+            const bottomEdge = rect.bottom;
+            const leftEdge = rect.left + (el._rtPaddingLeft || 0);
+            const rightEdge = rect.right - (el._rtPaddingRight || 0);
+
+            const hCount = Math.max(1, Math.floor((rightEdge - leftEdge) / this._hW));
+            const hStr = style.h.repeat(hCount);
+
+            this.ctx.fillText(hStr, leftEdge, topEdge);
+            this.ctx.fillText(hStr, leftEdge, bottomEdge);
+
+            const vSpace = bottomEdge - topEdge - (2 * this._vTotalH);
+            const vCount = Math.max(1, Math.round(vSpace / this._vTotalH));
+            const vSpacing = vCount > 1 ? vSpace / (vCount - 1) : 0;
+
+            for (let i = 0; i < vCount; i++) {
+                const y = topEdge + this._vTotalH + i * vSpacing;
+                this.ctx.fillText(style.v, leftEdge - this._hW, y);
+                this.ctx.fillText(style.v, rightEdge, y);
+            }
+
+            this.ctx.fillText(style.tl, leftEdge - this._hW, topEdge);
+            this.ctx.fillText(style.tr, rightEdge, topEdge);
+            this.ctx.fillText(style.bl, leftEdge - this._hW, bottomEdge);
+            this.ctx.fillText(style.br, rightEdge, bottomEdge);
         }
-
-        this.ctx.fillText(style.tl, leftEdge - this._hW, topEdge);
-        this.ctx.fillText(style.tr, rightEdge, topEdge);
-        this.ctx.fillText(style.bl, leftEdge - this._hW, bottomEdge);
-        this.ctx.fillText(style.br, rightEdge, bottomEdge);
     }
 
     render() {
-        const vw = window.innerWidth;
-        const dh = document.documentElement.scrollHeight;
-        this.ctx.clearRect(0, 0, vw, dh);
+        if (this._mode === "full") {
+            const vw = window.innerWidth;
+            const dh = document.documentElement.scrollHeight;
+            this.ctx.clearRect(0, 0, vw, dh);
+        } else {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            this.ctx.clearRect(0, 0, vw, vh);
+        }
         this.ctx.fillStyle = "#f0fff8";
 
         this.renderElements.forEach((el) => {
@@ -183,7 +239,11 @@ class RetroEngine {
     }
 
     startLoop() { }
-    stopLoop() { }
+
+    stopLoop() {
+        if (this._bodyObserver) this._bodyObserver.disconnect();
+        if (this._resizeTimer) clearTimeout(this._resizeTimer);
+    }
 }
 
 document.fonts.ready.then(() => {
