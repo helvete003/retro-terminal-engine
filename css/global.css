@@ -33,13 +33,10 @@ body {
 	animation: background-flicker 0.2s ease-in-out infinite;
 	color: #f0fff8;
 	margin: 0;
-	padding: 8px;
+	padding: 20px 8px;
 	box-sizing: border-box;
 	background: #0a0a0a;
 	font-size:1.6rem;
-	display: flex;
-	justify-content: center;
-	align-items: top;
 }
 
 a {
@@ -102,22 +99,31 @@ canvas {
 	background: #000800;
 }
 
-main {
-    /* display: flex;
-    flex-wrap: wrap;
-	justify-content: center;
-	align-items: center;
-    gap: 20px;
-    padding: 20px;
-	max-width: 100%;
-	width: 1200px; */
+.page {
+	max-width: 1200px;
+	width: 100%;
+	margin: 0 auto;
 	display: grid;
 	grid-template-areas:
-		"header header"
-		"menu content";
-	grid-template-columns: 1fr 3fr;
-	gap: 3px;
-	padding: 5px;
+		"header  header"
+		"nav     main";
+	grid-template-columns: 250px 1fr;
+	gap: 0;
+}
+
+@media (max-width: 768px) {
+	.page {
+		grid-template-areas:
+			"header"
+			"nav"
+			"main";
+		grid-template-columns: 1fr;
+	}
+
+	body {
+		padding: 8px 4px;
+		font-size: 1.2rem;
+	}
 }
 
 header {
@@ -125,19 +131,18 @@ header {
 	text-align: center;
 }
 
-menu {
-	grid-area: menu;
+nav {
+	grid-area: nav;
 }
 
-content {
-	grid-area: content;
+main {
+	grid-area: main;
 }
 
 div[retro-render] {
     min-width: 200px;
     background: transparent;
     user-select: text;
-	/* border:1px solid red; */
 }
 
 p {
