@@ -14,24 +14,44 @@ class RetroEngine {
         arrow:   { h: "►", v: "▲", tl: "◄", tr: "▲", bl: "▼", br: "►" },
     };
 
-   constructor(canvas_id) {
+    constructor(canvas_id) {
         this.canvas = document.getElementById(canvas_id);
         this.ctx = this.canvas.getContext("2d");
         this.renderElements = [];
-        this.animFrame = null;
+        this._scrollRAF = null;
         this._resize();
+        this._applyScroll();
+
         window.addEventListener("resize", () => {
             this._resize();
             this._setupMargins();
+            this.render();
         });
+
+        window.addEventListener("scroll", () => {
+            if (this._scrollRAF) return;
+            this._scrollRAF = requestAnimationFrame(() => {
+                this._applyScroll();
+                this._scrollRAF = null;
+            });
+        }, { passive: true });
     }
 
     _resize() {
         const dpr = window.devicePixelRatio || 1;
-        const rect = this.canvas.getBoundingClientRect();
-        this.canvas.width = rect.width * dpr;
-        this.canvas.height = rect.height * dpr;
+        const vw = window.innerWidth;
+        const dh = document.documentElement.scrollHeight;
+
+        this.canvas.width = vw * dpr;
+        this.canvas.height = dh * dpr;
+        this.canvas.style.height = dh + "px";
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    _applyScroll() {
+        const y = -(window.scrollY || 0);
+        const x = -(window.scrollX || 0);
+        this.canvas.style.transform = "translate(" + x + "px," + y + "px)";
     }
 
     init(attribute) {
@@ -42,7 +62,6 @@ class RetroEngine {
     _getStyle(el) {
         const name = el.getAttribute("retro-border");
         if (name && this.BORDER_STYLES[name]) return this.BORDER_STYLES[name];
-        // Custom override: any retro-h, retro-v, retro-tl, retro-tr, retro-bl, retro-br
         return {
             h:  el.getAttribute("retro-h")  || "-",
             v:  el.getAttribute("retro-v")  || "|",
@@ -54,7 +73,6 @@ class RetroEngine {
     }
 
     _measure(style, el) {
-        const dpr = window.devicePixelRatio || 1;
         const computed = getComputedStyle(el || document.body);
         const fontSize = parseFloat(computed.fontSize);
         this.ctx.font = fontSize + "px Glass TTY VT220";
@@ -65,25 +83,8 @@ class RetroEngine {
 
         this._hW = hM.width;
         this._hTotalH = cM.actualBoundingBoxAscent + cM.actualBoundingBoxDescent;
-
         this._vW = vM.width;
         this._vTotalH = cM.actualBoundingBoxAscent + cM.actualBoundingBoxDescent;
-
-        this._vCenterY = this._vTotalH / 2;
-    }
-
-    _measureCharHeight(symbol) {
-        const span = document.createElement('span');
-        span.style.visibility = 'hidden';
-        span.style.position = 'absolute';
-        span.style.padding = '0';
-        span.style.margin = '0';
-        span.textContent = symbol; // Captures ascender + descender
-        document.body.appendChild(span);
-        
-        const totalH = span.getBoundingClientRect().height;
-        document.body.removeChild(span);
-        return totalH;
     }
 
     _setupMargins() {
@@ -91,9 +92,8 @@ class RetroEngine {
             const style = this._getStyle(el);
             this._measure(style, el);
 
-            const gap = 0;
-            const tB = Math.ceil(this._hTotalH + gap);
-            const lR = Math.ceil(this._vW + gap);
+            const tB = Math.ceil(this._hTotalH);
+            const lR = Math.ceil(this._vW);
             const marginT = Math.ceil(this._hTotalH / 2);
             const marginR = Math.ceil(this._vW / 2);
 
@@ -109,27 +109,33 @@ class RetroEngine {
     }
 
     _drawBorder(el, style) {
-        const r = el.getBoundingClientRect();
         this._measure(style, el);
+
+        const rect = el.getBoundingClientRect();
+        const scrollY = window.scrollY || 0;
+        const scrollX = window.scrollX || 0;
+
+        const top = rect.top + scrollY;
+        const left = rect.left + scrollX;
+        const bottom = rect.bottom + scrollY;
+        const right = rect.right + scrollX;
 
         const pt = el._rtPaddingTop || 0;
         const pb = el._rtPaddingBottom || 0;
         const pl = el._rtPaddingLeft || 0;
         const pr = el._rtPaddingRight || 0;
 
-        const topEdge = r.top + pt;
-        const bottomEdge = r.bottom;
-        const leftEdge = r.left + pl;
-        const rightEdge = r.right - pr;
+        const topEdge = top + pt;
+        const bottomEdge = bottom;
+        const leftEdge = left + pl;
+        const rightEdge = right - pr;
 
-        // Horizontal borders — baseline so char draws downward from edge
         const hCount = Math.max(1, Math.floor((rightEdge - leftEdge) / this._hW));
         const hStr = style.h.repeat(hCount);
 
         this.ctx.fillText(hStr, leftEdge, topEdge);
         this.ctx.fillText(hStr, leftEdge, bottomEdge);
 
-        // Vertical borders — evenly distributed, baseline below center
         const vSpace = bottomEdge - topEdge - (2 * this._vTotalH);
         const vCount = Math.max(1, Math.round(vSpace / this._vTotalH));
         const vSpacing = vCount > 1 ? vSpace / (vCount - 1) : 0;
@@ -140,59 +146,35 @@ class RetroEngine {
             this.ctx.fillText(style.v, rightEdge, y);
         }
 
-        // Corners
         this.ctx.fillText(style.tl, leftEdge - this._hW, topEdge);
         this.ctx.fillText(style.tr, rightEdge, topEdge);
         this.ctx.fillText(style.bl, leftEdge - this._hW, bottomEdge);
         this.ctx.fillText(style.br, rightEdge, bottomEdge);
     }
 
-    render(time) {
-        const dpr = window.devicePixelRatio || 1;
-        const w = this.canvas.width / dpr;
-        const h = this.canvas.height / dpr;
-
-        this.ctx.clearRect(0, 0, w, h);
-
-        const flicker = Math.sin(time * Math.PI * 10) * 0.5 + 0.5;
-        const blurBase = 2;
-        const blurRange = 2;
-        const blur = blurBase + flicker * blurRange;
-        const outerBlur = 9 + flicker * 11;
-        const innerColor = flicker > 0.5 ? "#80ffc0" : "#72fab6";
-        const outerColor = "#00ff66";
-
+    render() {
+        const vw = window.innerWidth;
+        const dh = document.documentElement.scrollHeight;
+        this.ctx.clearRect(0, 0, vw, dh);
         this.ctx.fillStyle = "#f0fff8";
 
         this.renderElements.forEach((el) => {
             const style = this._getStyle(el);
 
-            this.ctx.shadowColor = innerColor;
-            this.ctx.shadowBlur = blur;
+            this.ctx.shadowColor = "#80ffc0";
+            this.ctx.shadowBlur = 3;
             this._drawBorder(el, style);
 
-            this.ctx.shadowColor = outerColor;
-            this.ctx.shadowBlur = outerBlur;
+            this.ctx.shadowColor = "#00ff66";
+            this.ctx.shadowBlur = 15;
             this._drawBorder(el, style);
         });
 
         this.ctx.shadowBlur = 0;
     }
 
-    startLoop() {
-        const loop = (time) => {
-            this.render(time / 1000);
-            this.animFrame = requestAnimationFrame(loop);
-        };
-        this.animFrame = requestAnimationFrame(loop);
-    }
-
-    stopLoop() {
-        if (this.animFrame) {
-            cancelAnimationFrame(this.animFrame);
-            this.animFrame = null;
-        }
-    }
+    startLoop() { }
+    stopLoop() { }
 }
 
 document.fonts.ready.then(() => {
