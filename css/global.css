@@ -7,6 +7,21 @@
     font-display: swap;
 }
 
+@keyframes background-flicker {
+	0% {
+		text-shadow: 0 0 2px #72fab6, 0 0 10px #00ff66, 0 0 20px #00ff66, 0 0 30px #00ff66;
+	}
+	25% {
+		text-shadow: 0 0 3px #80ffc0, 0 0 11px #00ff66, 0 0 21px #00ff66, 0 0 31px #00ff66;
+	}
+	50% {
+		text-shadow: 0 0 4px #80ffc0, 0 0 12px #00ff66, 0 0 23px #00ff66, 0 0 33px #00ff66;
+	}
+	100% {
+		text-shadow: 0 0 3px #80ffc0, 0 0 9px #00ff66, 0 0 19px #00ff66, 0 0 29px #00ff66;
+	}
+}
+
 html, body {
 	position: relative;
 	width: 100%;
@@ -15,12 +30,16 @@ html, body {
 
 body {
 	font-family: 'Glass TTY VT220';
-	color: #f0fff8; /* almost white */
+	animation: background-flicker 0.2s ease-in-out infinite;
+	color: #f0fff8;
 	margin: 0;
 	padding: 8px;
 	box-sizing: border-box;
-	/*font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;*/
+	background: #0a0a0a;
 	font-size:1.6rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
 }
 
 a {
@@ -80,13 +99,35 @@ canvas {
 	z-index:-1;
 	width:100%;
 	height:100%;
+	background: #000800;
 }
 
 main {
     display: flex;
+    flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+    gap: 20px;
+    padding: 20px;
+	max-width: 100%;
+	width: 1024px;
+}
+.row {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	width: 100%;
+}
+.column {
+	display: flex;
+	flex-direction: column;
+	flex-basis: 100%;
+	flex: 1;
 }
 
 div[retro-render] {
-    margin:20px;
     min-width: 200px;
+    padding: 4px 6px;
+    background: transparent;
+    user-select: text;
 }
