@@ -53,9 +53,10 @@ class RetroEngine {
         };
     }
 
-    _measure(style) {
+    _measure(style, el) {
         const dpr = window.devicePixelRatio || 1;
-        const fontSize = 25.6 / dpr;
+        const computed = getComputedStyle(el || document.body);
+        const fontSize = parseFloat(computed.fontSize);
         this.ctx.font = fontSize + "px Glass TTY VT220";
 
         const hM = this.ctx.measureText(style.h);
@@ -88,7 +89,7 @@ class RetroEngine {
     _setupMargins() {
         this.renderElements.forEach((el) => {
             const style = this._getStyle(el);
-            this._measure(style);
+            this._measure(style, el);
 
             const gap = 0;
             const tB = Math.ceil(this._hTotalH + gap);
@@ -109,7 +110,7 @@ class RetroEngine {
 
     _drawBorder(el, style) {
         const r = el.getBoundingClientRect();
-        this._measure(style);
+        this._measure(style, el);
 
         const pt = el._rtPaddingTop || 0;
         const pb = el._rtPaddingBottom || 0;
