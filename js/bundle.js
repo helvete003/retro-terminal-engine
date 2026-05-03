@@ -147,6 +147,8 @@ class RetroEngine {
         const scrollY = window.scrollY || 0;
         const scrollX = window.scrollX || 0;
 
+        let leftEdge, rightEdge, topEdge, bottomEdge;
+
         if (this._mode === "full") {
             const top = rect.top + scrollY;
             const left = rect.left + scrollX;
@@ -157,58 +159,50 @@ class RetroEngine {
             const pl = el._rtPaddingLeft || 0;
             const pr = el._rtPaddingRight || 0;
 
-            const topEdge = top + pt;
-            const bottomEdge = bottom;
-            const leftEdge = left + pl;
-            const rightEdge = right - pr;
-
-            const hCount = Math.max(1, Math.floor((rightEdge - leftEdge) / this._hW));
-            const hStr = style.h.repeat(hCount);
-
-            this.ctx.fillText(hStr, leftEdge, topEdge);
-            this.ctx.fillText(hStr, leftEdge, bottomEdge);
-
-            const vSpace = bottomEdge - topEdge - (2 * this._vTotalH);
-            const vCount = Math.max(1, Math.round(vSpace / this._vTotalH));
-            const vSpacing = vCount > 1 ? vSpace / (vCount - 1) : 0;
-
-            for (let i = 0; i < vCount; i++) {
-                const y = topEdge + this._vTotalH + i * vSpacing;
-                this.ctx.fillText(style.v, leftEdge - this._hW, y);
-                this.ctx.fillText(style.v, rightEdge, y);
-            }
-
-            this.ctx.fillText(style.tl, leftEdge - this._hW, topEdge);
-            this.ctx.fillText(style.tr, rightEdge, topEdge);
-            this.ctx.fillText(style.bl, leftEdge - this._hW, bottomEdge);
-            this.ctx.fillText(style.br, rightEdge, bottomEdge);
+            topEdge = top + pt;
+            bottomEdge = bottom;
+            leftEdge = left + pl;
+            rightEdge = right - pr;
         } else {
-            const topEdge = rect.top + (el._rtPaddingTop || 0);
-            const bottomEdge = rect.bottom;
-            const leftEdge = rect.left + (el._rtPaddingLeft || 0);
-            const rightEdge = rect.right - (el._rtPaddingRight || 0);
-
-            const hCount = Math.max(1, Math.floor((rightEdge - leftEdge) / this._hW));
-            const hStr = style.h.repeat(hCount);
-
-            this.ctx.fillText(hStr, leftEdge, topEdge);
-            this.ctx.fillText(hStr, leftEdge, bottomEdge);
-
-            const vSpace = bottomEdge - topEdge - (2 * this._vTotalH);
-            const vCount = Math.max(1, Math.round(vSpace / this._vTotalH));
-            const vSpacing = vCount > 1 ? vSpace / (vCount - 1) : 0;
-
-            for (let i = 0; i < vCount; i++) {
-                const y = topEdge + this._vTotalH + i * vSpacing;
-                this.ctx.fillText(style.v, leftEdge - this._hW, y);
-                this.ctx.fillText(style.v, rightEdge, y);
-            }
-
-            this.ctx.fillText(style.tl, leftEdge - this._hW, topEdge);
-            this.ctx.fillText(style.tr, rightEdge, topEdge);
-            this.ctx.fillText(style.bl, leftEdge - this._hW, bottomEdge);
-            this.ctx.fillText(style.br, rightEdge, bottomEdge);
+            topEdge = rect.top + (el._rtPaddingTop || 0);
+            bottomEdge = rect.bottom;
+            leftEdge = rect.left + (el._rtPaddingLeft || 0);
+            rightEdge = rect.right - (el._rtPaddingRight || 0);
         }
+
+        // Horizontal borders — dynamic spacing to fill exactly
+        const hSpace = rightEdge - leftEdge;
+        let hCount = Math.max(1, Math.floor(hSpace / this._hW));
+        if (hCount > 1) {
+            const hSpacing = (hSpace - this._hW) / (hCount - 1);
+            if (hSpacing > this._hW * 1.3) hCount++;
+        }
+        const hSpacing = hCount > 1 ? (hSpace - this._hW) / (hCount - 1) : 0;
+        for (let i = 0; i < hCount; i++) {
+            const x = leftEdge + i * hSpacing;
+            this.ctx.fillText(style.h, x, topEdge);
+            this.ctx.fillText(style.h, x, bottomEdge);
+        }
+
+        // Vertical borders — dynamic spacing to fill exactly
+        const vSpace = bottomEdge - topEdge - this._vTotalH;
+        let vCount = Math.max(1, Math.round(vSpace / this._vTotalH));
+        if (vCount > 1) {
+            const vSpacing = vSpace / (vCount - 1);
+            if (vSpacing > this._vTotalH * 1.3) vCount++;
+        }
+        const vSpacing = vCount > 1 ? vSpace / (vCount - 1) : 0;
+        for (let i = 0; i < vCount; i++) {
+            const y = topEdge + this._vTotalH + i * vSpacing;
+            this.ctx.fillText(style.v, leftEdge - this._hW, y);
+            this.ctx.fillText(style.v, rightEdge, y);
+        }
+
+        // Corners
+        this.ctx.fillText(style.tl, leftEdge - this._hW, topEdge);
+        this.ctx.fillText(style.tr, rightEdge, topEdge);
+        this.ctx.fillText(style.bl, leftEdge - this._hW, bottomEdge);
+        this.ctx.fillText(style.br, rightEdge, bottomEdge);
     }
 
     render() {
