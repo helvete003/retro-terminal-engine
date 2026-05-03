@@ -26,6 +26,7 @@ class RetroEngine {
         window.addEventListener("resize", () => {
             this._setupMargins();
             this._resize();
+            this._cachePositions();
             if (this._mode === "full") this._applyScroll();
             this.render();
         });
@@ -50,6 +51,7 @@ class RetroEngine {
             if (this._resizeTimer) clearTimeout(this._resizeTimer);
             this._resizeTimer = setTimeout(() => {
                 this._resize();
+                this._cachePositions();
                 if (this._mode === "full") this._applyScroll();
                 this.render();
             }, 100);
@@ -58,7 +60,7 @@ class RetroEngine {
     }
 
     _resize() {
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const vw = window.innerWidth;
         const vh = window.innerHeight;
         const dh = document.documentElement.scrollHeight;
@@ -116,7 +118,9 @@ class RetroEngine {
         c.font = fontSize + "px Glass TTY VT220";
 
         const m = c.measureText(char);
-        const pad = 10;
+        const isMobile = "ontouchstart" in window;
+        const blurOuter = isMobile ? 8 : 15;
+        const pad = isMobile ? 6 : 10;
         off.width = Math.ceil(m.width) + pad * 2;
         off.height = Math.ceil(m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) + pad * 2;
 
@@ -128,7 +132,7 @@ class RetroEngine {
         c.fillText(char, pad, pad + m.actualBoundingBoxAscent);
 
         c.shadowColor = "#00ff66";
-        c.shadowBlur = 15;
+        c.shadowBlur = blurOuter;
         c.fillText(char, pad, pad + m.actualBoundingBoxAscent);
 
         c.shadowBlur = 0;
@@ -180,6 +184,22 @@ class RetroEngine {
         });
     }
 
+    _cachePositions() {
+        const scrollY = window.scrollY || 0;
+        const scrollX = window.scrollX || 0;
+
+        this.renderElements.forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            const fontSize = parseFloat(getComputedStyle(el).fontSize);
+
+            el._rtDocTop = rect.top + scrollY;
+            el._rtDocLeft = rect.left + scrollX;
+            el._rtDocBottom = rect.bottom + scrollY;
+            el._rtDocRight = rect.right + scrollX;
+            el._rtFontSize = fontSize;
+        });
+    }
+
     _drawGlyph(char, fontSize, x, y) {
         const g = this._getGlyph(char, fontSize);
         this.ctx.drawImage(g.canvas, x - g.offsetX, y - g.offsetY);
@@ -188,34 +208,19 @@ class RetroEngine {
     _drawBorder(el, style) {
         this._measure(style, el);
 
-        const fontSize = parseFloat(getComputedStyle(el).fontSize);
+        const fontSize = el._rtFontSize;
+        const scrollY = (window.scrollY || 0);
+        const scrollX = (window.scrollX || 0);
 
-        const rect = el.getBoundingClientRect();
-        const scrollY = window.scrollY || 0;
-        const scrollX = window.scrollX || 0;
+        const top = (this._mode === "viewport" ? el._rtDocTop - scrollY : el._rtDocTop);
+        const bottom = (this._mode === "viewport" ? el._rtDocBottom - scrollY : el._rtDocBottom);
+        const left = (this._mode === "viewport" ? el._rtDocLeft - scrollX : el._rtDocLeft);
+        const right = (this._mode === "viewport" ? el._rtDocRight - scrollX : el._rtDocRight);
 
-        let leftEdge, rightEdge, topEdge, bottomEdge;
-
-        if (this._mode === "full") {
-            const top = rect.top + scrollY;
-            const left = rect.left + scrollX;
-            const bottom = rect.bottom + scrollY;
-            const right = rect.right + scrollX;
-
-            const pt = el._rtPaddingTop || 0;
-            const pl = el._rtPaddingLeft || 0;
-            const pr = el._rtPaddingRight || 0;
-
-            topEdge = top + pt;
-            bottomEdge = bottom;
-            leftEdge = left + pl;
-            rightEdge = right - pr;
-        } else {
-            topEdge = rect.top + (el._rtPaddingTop || 0);
-            bottomEdge = rect.bottom;
-            leftEdge = rect.left + (el._rtPaddingLeft || 0);
-            rightEdge = rect.right - (el._rtPaddingRight || 0);
-        }
+        const leftEdge = left + (el._rtPaddingLeft || 0);
+        const rightEdge = right - (el._rtPaddingRight || 0);
+        const topEdge = top + (el._rtPaddingTop || 0);
+        const bottomEdge = bottom;
 
         // Horizontal borders — dynamic spacing to fill exactly
         const hSpace = rightEdge - leftEdge;
@@ -283,6 +288,7 @@ document.fonts.ready.then(() => {
         engine._setupMargins();
         requestAnimationFrame(() => {
             engine._resize();
+            engine._cachePositions();
             if (engine._mode === "full") {
                 engine._applyScroll();
             }

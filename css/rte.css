@@ -319,6 +319,7 @@ canvas {
 	width:100%;
 	background: #000800;
 	transform-origin: top left;
+	will-change: transform;
 }
 
 [retro-render] {
