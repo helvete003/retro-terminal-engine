@@ -27,9 +27,9 @@ Two rendering modes are supported:
 retro_engine/
 ├── index.html          # Main page with example usage
 ├── css/
-│   └── global.css      # Retro terminal styling and form element theming
+│   └── rte.css      # Retro terminal styling and form element theming
 ├── js/
-│   └── bundle.js       # RetroEngine class — the core library
+│   └── rte.js       # RetroEngine class — the core library
 └── fonts/
     ├── Glass_TTY_VT220.woff
     └── Glass_TTY_VT220.woff2
@@ -40,8 +40,8 @@ retro_engine/
 Include the three files in your HTML page:
 
 ```html
-<link rel="stylesheet" href="css/global.css">
-<script defer src="js/bundle.js"></script>
+<link rel="stylesheet" href="css/rte.css">
+<script defer src="js/rte.js"></script>
 <canvas id="retro-engine"></canvas>
 ```
 
