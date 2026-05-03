@@ -166,7 +166,13 @@ class RetroEngine {
     _setupMargins() {
         this.renderElements.forEach((el) => {
             const style = this._getStyle(el);
+            el._rtStyle = style;
             this._measure(style, el);
+
+            el._rtHW = this._hW;
+            el._rtHTotalH = this._hTotalH;
+            el._rtVW = this._vW;
+            el._rtVTotalH = this._vTotalH;
 
             const tB = Math.ceil(this._hTotalH);
             const lR = Math.ceil(this._vW);
@@ -206,9 +212,12 @@ class RetroEngine {
     }
 
     _drawBorder(el, style) {
-        this._measure(style, el);
-
         const fontSize = el._rtFontSize;
+        const hW = el._rtHW;
+        const hTotalH = el._rtHTotalH;
+        const vW = el._rtVW;
+        const vTotalH = el._rtVTotalH;
+
         const scrollY = (window.scrollY || 0);
         const scrollX = (window.scrollX || 0);
 
@@ -224,12 +233,12 @@ class RetroEngine {
 
         // Horizontal borders — dynamic spacing to fill exactly
         const hSpace = rightEdge - leftEdge;
-        let hCount = Math.max(1, Math.floor(hSpace / this._hW));
+        let hCount = Math.max(1, Math.floor(hSpace / hW));
         if (hCount > 1) {
-            const hSpacing = (hSpace - this._hW) / (hCount - 1);
-            if (hSpacing > this._hW * 1.3) hCount++;
+            const hSpacing = (hSpace - hW) / (hCount - 1);
+            if (hSpacing > hW * 1.3) hCount++;
         }
-        const hSpacing = hCount > 1 ? (hSpace - this._hW) / (hCount - 1) : 0;
+        const hSpacing = hCount > 1 ? (hSpace - hW) / (hCount - 1) : 0;
         for (let i = 0; i < hCount; i++) {
             const x = leftEdge + i * hSpacing;
             this._drawGlyph(style.h, fontSize, x, topEdge);
@@ -237,23 +246,23 @@ class RetroEngine {
         }
 
         // Vertical borders — dynamic spacing to fill exactly
-        const vSpace = bottomEdge - topEdge - (2 * this._vTotalH);
-        let vCount = Math.max(1, Math.round(vSpace / this._vTotalH));
+        const vSpace = bottomEdge - topEdge - (2 * vTotalH);
+        let vCount = Math.max(1, Math.round(vSpace / vTotalH));
         if (vCount > 1) {
             const vSpacing = vSpace / (vCount - 1);
-            if (vSpacing > this._vTotalH * 1.3) vCount++;
+            if (vSpacing > vTotalH * 1.3) vCount++;
         }
         const vSpacing = vCount > 1 ? vSpace / (vCount - 1) : 0;
         for (let i = 0; i < vCount; i++) {
-            const y = topEdge + this._vTotalH + i * vSpacing;
-            this._drawGlyph(style.v, fontSize, leftEdge - this._hW, y);
+            const y = topEdge + vTotalH + i * vSpacing;
+            this._drawGlyph(style.v, fontSize, leftEdge - hW, y);
             this._drawGlyph(style.v, fontSize, rightEdge, y);
         }
 
         // Corners
-        this._drawGlyph(style.tl, fontSize, leftEdge - this._hW, topEdge);
+        this._drawGlyph(style.tl, fontSize, leftEdge - hW, topEdge);
         this._drawGlyph(style.tr, fontSize, rightEdge, topEdge);
-        this._drawGlyph(style.bl, fontSize, leftEdge - this._hW, bottomEdge);
+        this._drawGlyph(style.bl, fontSize, leftEdge - hW, bottomEdge);
         this._drawGlyph(style.br, fontSize, rightEdge, bottomEdge);
     }
 
@@ -270,7 +279,7 @@ class RetroEngine {
         this.ctx.fillStyle = "#f0fff8";
 
         this.renderElements.forEach((el) => {
-            this._drawBorder(el, this._getStyle(el));
+            this._drawBorder(el, el._rtStyle);
         });
     }
 
