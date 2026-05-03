@@ -185,7 +185,7 @@ class RetroEngine {
         }
 
         // Vertical borders — dynamic spacing to fill exactly
-        const vSpace = bottomEdge - topEdge - this._vTotalH;
+        const vSpace = bottomEdge - topEdge - (2 * this._vTotalH);
         let vCount = Math.max(1, Math.round(vSpace / this._vTotalH));
         if (vCount > 1) {
             const vSpacing = vSpace / (vCount - 1);
