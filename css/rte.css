@@ -28,16 +28,16 @@ body {
 }
 
 a {
-	color: rgb(0,100,200);
-	text-decoration: none;
-}
-
-a:hover {
+	color: #f0fff8;
 	text-decoration: underline;
 }
 
+a:hover {
+	text-decoration: dotted;
+}
+
 a:visited {
-	color: rgb(0,80,160);
+	text-decoration: dotted;
 }
 
 label {
@@ -321,53 +321,8 @@ canvas {
 	transform-origin: top left;
 }
 
-.page {
-	max-width: 1188px;
-	width: 100%;
-	margin: 0 auto;
-	display: grid;
-	grid-template-areas:
-		"header  header"
-		"nav     main";
-	grid-template-columns: 250px 1fr;
-	gap: 0;
-}
-
-@media (max-width: 768px) {
-	.page {
-		grid-template-areas:
-			"header"
-			"nav"
-			"main";
-		grid-template-columns: 1fr;
-	}
-
-	body {
-		padding: 8px 4px;
-		font-size: 1.2rem;
-	}
-}
-
-header {
-	grid-area: header;
-	text-align: center;
-}
-
-nav {
-	grid-area: nav;
-}
-
-main {
-	grid-area: main;
-}
-
-div[retro-render] {
+[retro-render] {
     min-width: 200px;
     background: transparent;
     user-select: text;
-}
-
-p {
-	padding:10px;
-	margin:0;
 }

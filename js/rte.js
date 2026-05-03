@@ -25,6 +25,7 @@ class RetroEngine {
         window.addEventListener("resize", () => {
             this._setupMargins();
             this._resize();
+            if (this._mode === "full") this._applyScroll();
             this.render();
         });
 
@@ -48,6 +49,7 @@ class RetroEngine {
             if (this._resizeTimer) clearTimeout(this._resizeTimer);
             this._resizeTimer = setTimeout(() => {
                 this._resize();
+                if (this._mode === "full") this._applyScroll();
                 this.render();
             }, 100);
         });
@@ -246,6 +248,9 @@ document.fonts.ready.then(() => {
         engine._setupMargins();
         requestAnimationFrame(() => {
             engine._resize();
+            if (engine._mode === "full") {
+                engine._applyScroll();
+            }
             engine.render();
             engine.startLoop();
         });
