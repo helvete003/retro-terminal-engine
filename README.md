@@ -2,6 +2,11 @@
 
 A lightweight JavaScript library that renders retro-style ASCII art borders around HTML elements using a `<canvas>` overlay. Inspired by old CRT monitors and terminal aesthetics, it gives websites a nostalgic green-on-black phosphor display look.
 
+## Preview
+
+![Alt text](image/preview.png "Preview")
+
+
 ## How It Works
 
 The engine operates in three stages:
