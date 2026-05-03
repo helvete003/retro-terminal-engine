@@ -276,11 +276,22 @@ class RetroEngine {
             const vh = window.innerHeight;
             this.ctx.clearRect(0, 0, vw, vh);
         }
-        this.ctx.fillStyle = "#f0fff8";
 
-        this.renderElements.forEach((el) => {
-            this._drawBorder(el, el._rtStyle);
-        });
+        if (this._mode === "viewport") {
+            const scrollY = window.scrollY || 0;
+            const vh = window.innerHeight;
+            const viewTop = scrollY;
+            const viewBottom = scrollY + vh;
+
+            this.renderElements.forEach((el) => {
+                if (el._rtDocBottom < viewTop || el._rtDocTop > viewBottom) return;
+                this._drawBorder(el, el._rtStyle);
+            });
+        } else {
+            this.renderElements.forEach((el) => {
+                this._drawBorder(el, el._rtStyle);
+            });
+        }
     }
 
     startLoop() { }
