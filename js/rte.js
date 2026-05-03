@@ -21,6 +21,7 @@ class RetroEngine {
         this._scrollRAF = null;
         this._resizeTimer = null;
         this._mode = "full";
+        this._glyphCache = new Map();
 
         window.addEventListener("resize", () => {
             this._setupMargins();
@@ -106,6 +107,43 @@ class RetroEngine {
         };
     }
 
+   _getGlyph(char, fontSize) {
+        const key = char + "|" + fontSize;
+        if (this._glyphCache.has(key)) return this._glyphCache.get(key);
+
+        const off = document.createElement("canvas");
+        const c = off.getContext("2d");
+        c.font = fontSize + "px Glass TTY VT220";
+
+        const m = c.measureText(char);
+        const pad = 10;
+        off.width = Math.ceil(m.width) + pad * 2;
+        off.height = Math.ceil(m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) + pad * 2;
+
+        c.font = fontSize + "px Glass TTY VT220";
+        c.fillStyle = "#f0fff8";
+
+        c.shadowColor = "#80ffc0";
+        c.shadowBlur = 3;
+        c.fillText(char, pad, pad + m.actualBoundingBoxAscent);
+
+        c.shadowColor = "#00ff66";
+        c.shadowBlur = 15;
+        c.fillText(char, pad, pad + m.actualBoundingBoxAscent);
+
+        c.shadowBlur = 0;
+
+        const entry = {
+            canvas: off,
+            width: off.width,
+            height: off.height,
+            offsetX: pad,
+            offsetY: pad + m.actualBoundingBoxAscent
+        };
+        this._glyphCache.set(key, entry);
+        return entry;
+    }
+
     _measure(style, el) {
         const computed = getComputedStyle(el || document.body);
         const fontSize = parseFloat(computed.fontSize);
@@ -142,8 +180,15 @@ class RetroEngine {
         });
     }
 
+    _drawGlyph(char, fontSize, x, y) {
+        const g = this._getGlyph(char, fontSize);
+        this.ctx.drawImage(g.canvas, x - g.offsetX, y - g.offsetY);
+    }
+
     _drawBorder(el, style) {
         this._measure(style, el);
+
+        const fontSize = parseFloat(getComputedStyle(el).fontSize);
 
         const rect = el.getBoundingClientRect();
         const scrollY = window.scrollY || 0;
@@ -182,8 +227,8 @@ class RetroEngine {
         const hSpacing = hCount > 1 ? (hSpace - this._hW) / (hCount - 1) : 0;
         for (let i = 0; i < hCount; i++) {
             const x = leftEdge + i * hSpacing;
-            this.ctx.fillText(style.h, x, topEdge);
-            this.ctx.fillText(style.h, x, bottomEdge);
+            this._drawGlyph(style.h, fontSize, x, topEdge);
+            this._drawGlyph(style.h, fontSize, x, bottomEdge);
         }
 
         // Vertical borders — dynamic spacing to fill exactly
@@ -196,15 +241,15 @@ class RetroEngine {
         const vSpacing = vCount > 1 ? vSpace / (vCount - 1) : 0;
         for (let i = 0; i < vCount; i++) {
             const y = topEdge + this._vTotalH + i * vSpacing;
-            this.ctx.fillText(style.v, leftEdge - this._hW, y);
-            this.ctx.fillText(style.v, rightEdge, y);
+            this._drawGlyph(style.v, fontSize, leftEdge - this._hW, y);
+            this._drawGlyph(style.v, fontSize, rightEdge, y);
         }
 
         // Corners
-        this.ctx.fillText(style.tl, leftEdge - this._hW, topEdge);
-        this.ctx.fillText(style.tr, rightEdge, topEdge);
-        this.ctx.fillText(style.bl, leftEdge - this._hW, bottomEdge);
-        this.ctx.fillText(style.br, rightEdge, bottomEdge);
+        this._drawGlyph(style.tl, fontSize, leftEdge - this._hW, topEdge);
+        this._drawGlyph(style.tr, fontSize, rightEdge, topEdge);
+        this._drawGlyph(style.bl, fontSize, leftEdge - this._hW, bottomEdge);
+        this._drawGlyph(style.br, fontSize, rightEdge, bottomEdge);
     }
 
     render() {
@@ -220,18 +265,8 @@ class RetroEngine {
         this.ctx.fillStyle = "#f0fff8";
 
         this.renderElements.forEach((el) => {
-            const style = this._getStyle(el);
-
-            this.ctx.shadowColor = "#80ffc0";
-            this.ctx.shadowBlur = 3;
-            this._drawBorder(el, style);
-
-            this.ctx.shadowColor = "#00ff66";
-            this.ctx.shadowBlur = 15;
-            this._drawBorder(el, style);
+            this._drawBorder(el, this._getStyle(el));
         });
-
-        this.ctx.shadowBlur = 0;
     }
 
     startLoop() { }
